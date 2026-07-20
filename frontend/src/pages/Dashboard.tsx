@@ -9,7 +9,7 @@ import { HistoryDrawer } from '../components/HistoryDrawer';
 import { Drawer } from '../components/Drawer';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
-import { formatResponseTime, getHost } from '../utils/format';
+import { formatResponseTime, getHost, isSameWebsiteUrl, normalizeUrl } from '../utils/format';
 import { Globe, CheckCircle2, AlertTriangle, Gauge } from 'lucide-react';
 
 export function Dashboard() {
@@ -60,6 +60,11 @@ export function Dashboard() {
   };
 
   const handleAdd = async (url: string) => {
+    const normalized = normalizeUrl(url);
+    if (websites.some((website) => isSameWebsiteUrl(website.url, normalized))) {
+      throw new Error('This website is already added.');
+    }
+
     const id = toast.loading('Adding website…');
     try {
       const site = await api.addWebsite(url);

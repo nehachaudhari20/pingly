@@ -11,6 +11,7 @@ from app.schemas.health_check import (
 )
 from app.schemas.website import WebsiteCreate, WebsiteResponse, WebsiteStatusResponse
 from app.services.ping import ping_url
+from app.services.url import canonicalize_website_url
 
 router = APIRouter(prefix="/api/websites", tags=["websites"])
 
@@ -93,7 +94,18 @@ def create_website(
     website_data: WebsiteCreate,
     db: Session = Depends(get_db),
 ) -> Website:
-    website = Website(url=str(website_data.url))
+    url = str(website_data.url)
+    canonical_url = canonicalize_website_url(url)
+
+    active_websites = db.scalars(select(Website).where(Website.is_active.is_(True)))
+    for existing in active_websites:
+        if canonicalize_website_url(existing.url) == canonical_url:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This website is already added.",
+            )
+
+    website = Website(url=url)
     db.add(website)
     db.commit()
     db.refresh(website)
