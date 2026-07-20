@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -6,6 +7,12 @@ from app.models.website import Website
 from app.schemas.website import WebsiteCreate, WebsiteResponse
 
 router = APIRouter(prefix="/api/websites", tags=["websites"])
+
+
+@router.get("", response_model=list[WebsiteResponse])
+def list_active_websites(db: Session = Depends(get_db)) -> list[Website]:
+    statement = select(Website).where(Website.is_active.is_(True))
+    return list(db.scalars(statement))
 
 
 @router.post("", response_model=WebsiteResponse, status_code=status.HTTP_201_CREATED)
