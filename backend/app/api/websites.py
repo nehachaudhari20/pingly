@@ -1,12 +1,48 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
+from app.models.health_check import HealthCheck
 from app.models.website import Website
-from app.schemas.website import WebsiteCreate, WebsiteResponse
+from app.schemas.website import WebsiteCreate, WebsiteResponse, WebsiteStatusResponse
 
 router = APIRouter(prefix="/api/websites", tags=["websites"])
+
+
+@router.get("/{website_id}/status", response_model=WebsiteStatusResponse)
+def get_website_status(
+    website_id: int,
+    db: Session = Depends(get_db),
+) -> WebsiteStatusResponse:
+    website = db.get(Website, website_id)
+    if website is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found")
+
+    statement = (
+        select(HealthCheck)
+        .where(HealthCheck.website_id == website_id)
+        .order_by(desc(HealthCheck.checked_at))
+        .limit(1)
+    )
+    health_check = db.scalar(statement)
+
+    if health_check is None:
+        return WebsiteStatusResponse(
+            website_id=website_id,
+            status="unknown",
+            status_code=None,
+            response_time_ms=None,
+            checked_at=None,
+        )
+
+    return WebsiteStatusResponse(
+        website_id=website_id,
+        status=health_check.status.value,
+        status_code=health_check.status_code,
+        response_time_ms=health_check.response_time_ms,
+        checked_at=health_check.checked_at,
+    )
 
 
 @router.get("", response_model=list[WebsiteResponse])

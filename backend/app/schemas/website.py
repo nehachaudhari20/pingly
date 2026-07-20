@@ -14,3 +14,11 @@ class WebsiteResponse(BaseModel):
     is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class WebsiteStatusResponse(BaseModel):
+    website_id: int
+    status: str
+    status_code: int | None
+    response_time_ms: float | None
+    checked_at: datetime | None
