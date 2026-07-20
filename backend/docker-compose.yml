@@ -1,0 +1,14 @@
+services:
+  backend:
+    build: .
+    container_name: pingly-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - pingly-data:/app/data
+    environment:
+      DATABASE_URL: sqlite:////app/data/pingly.db
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+
+volumes:
+  pingly-data:

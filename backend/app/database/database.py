@@ -1,10 +1,11 @@
 from collections.abc import Generator
 from threading import Lock
+import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-DATABASE_URL = "sqlite:///./pingly.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./pingly.db")
 
 engine = create_engine(
     DATABASE_URL,
