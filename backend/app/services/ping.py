@@ -16,7 +16,7 @@ async def ping_url(url: str) -> PingResult:
     try:
         async with httpx.AsyncClient(follow_redirects=True, timeout=10.0) as client:
             response = await client.get(url)
-    except httpx.RequestError:
+    except Exception:
         return {
             "status": "down",
             "status_code": None,
