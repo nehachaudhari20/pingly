@@ -1,13 +1,49 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import desc, select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.models.health_check import HealthCheck
 from app.models.website import Website
+from app.schemas.health_check import (
+    HealthCheckResponse,
+    PaginatedHealthCheckResponse,
+)
 from app.schemas.website import WebsiteCreate, WebsiteResponse, WebsiteStatusResponse
 
 router = APIRouter(prefix="/api/websites", tags=["websites"])
+
+
+@router.get("/{website_id}/history", response_model=PaginatedHealthCheckResponse)
+def get_website_history(
+    website_id: int,
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> PaginatedHealthCheckResponse:
+    website = db.get(Website, website_id)
+    if website is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found")
+
+    filters = HealthCheck.website_id == website_id
+    total = db.scalar(select(func.count()).where(filters)) or 0
+    health_checks = list(
+        db.scalars(
+            select(HealthCheck)
+            .where(filters)
+            .order_by(desc(HealthCheck.checked_at))
+            .offset((page - 1) * limit)
+            .limit(limit)
+        )
+    )
+
+    return PaginatedHealthCheckResponse(
+        items=[HealthCheckResponse.model_validate(health_check) for health_check in health_checks],
+        page=page,
+        limit=limit,
+        total=total,
+        total_pages=(total + limit - 1) // limit,
+    )
 
 
 @router.get("/{website_id}/status", response_model=WebsiteStatusResponse)
