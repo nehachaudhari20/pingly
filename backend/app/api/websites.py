@@ -3,13 +3,14 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
-from app.models.health_check import HealthCheck
+from app.models.health_check import HealthCheck, HealthStatus
 from app.models.website import Website
 from app.schemas.health_check import (
     HealthCheckResponse,
     PaginatedHealthCheckResponse,
 )
 from app.schemas.website import WebsiteCreate, WebsiteResponse, WebsiteStatusResponse
+from app.services.ping import ping_url
 
 router = APIRouter(prefix="/api/websites", tags=["websites"])
 
@@ -31,7 +32,7 @@ def get_website_history(
         db.scalars(
             select(HealthCheck)
             .where(filters)
-            .order_by(desc(HealthCheck.checked_at))
+            .order_by(desc(HealthCheck.checked_at), desc(HealthCheck.id))
             .offset((page - 1) * limit)
             .limit(limit)
         )
@@ -58,7 +59,7 @@ def get_website_status(
     statement = (
         select(HealthCheck)
         .where(HealthCheck.website_id == website_id)
-        .order_by(desc(HealthCheck.checked_at))
+        .order_by(desc(HealthCheck.checked_at), desc(HealthCheck.id))
         .limit(1)
     )
     health_check = db.scalar(statement)
@@ -97,6 +98,28 @@ def create_website(
     db.commit()
     db.refresh(website)
     return website
+
+
+@router.post("/{website_id}/check", response_model=HealthCheckResponse)
+async def check_website(
+    website_id: int,
+    db: Session = Depends(get_db),
+) -> HealthCheck:
+    website = db.get(Website, website_id)
+    if website is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found")
+
+    result = await ping_url(website.url)
+    health_check = HealthCheck(
+        website_id=website.id,
+        status=HealthStatus(result["status"]),
+        status_code=result["status_code"],
+        response_time_ms=result["response_time_ms"],
+    )
+    db.add(health_check)
+    db.commit()
+    db.refresh(health_check)
+    return health_check
 
 
 @router.delete("/{website_id}", status_code=status.HTTP_204_NO_CONTENT)
