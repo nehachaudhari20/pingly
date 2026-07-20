@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -25,3 +25,13 @@ def create_website(
     db.commit()
     db.refresh(website)
     return website
+
+
+@router.delete("/{website_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deactivate_website(website_id: int, db: Session = Depends(get_db)) -> None:
+    website = db.get(Website, website_id)
+    if website is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Website not found")
+
+    website.is_active = False
+    db.commit()
