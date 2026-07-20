@@ -25,7 +25,7 @@ async def ping_url(url: str) -> PingResult:
 
     response_time_ms = (time.perf_counter() - start_time) * 1_000
     return {
-        "status": "up" if response.is_success else "down",
+        "status": "up" if response.status_code < 500 else "down",
         "status_code": response.status_code,
         "response_time_ms": response_time_ms,
     }

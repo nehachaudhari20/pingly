@@ -9,6 +9,7 @@ interface WebsiteTableProps {
   error: string | null;
   checkingId: string | null;
   deletingId: string | null;
+  highlightedId: string | null;
   onCheck: (id: string) => void;
   onDelete: (id: string) => void;
   onRowClick: (site: Website) => void;
@@ -22,6 +23,7 @@ export function WebsiteTable({
   error,
   checkingId,
   deletingId,
+  highlightedId,
   onCheck,
   onDelete,
   onRowClick,
@@ -81,19 +83,19 @@ export function WebsiteTable({
               <th className="px-5 py-3 font-medium">Status</th>
               <th className="px-5 py-3 font-medium">HTTP</th>
               <th className="px-5 py-3 font-medium">Response</th>
-              <th className="px-5 py-3 font-medium">Last Checked</th>
               <th className="px-5 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {websites.map((site) => {
               const busy = checkingId === site.id || deletingId === site.id;
-              const neverChecked = site.last_checked_at === null;
               return (
                 <tr
                   key={site.id}
                   onClick={() => onRowClick(site)}
-                  className="group cursor-pointer transition-colors duration-150 hover:bg-gray-50/80"
+                  className={`group cursor-pointer transition-colors duration-150 hover:bg-gray-50/80 ${
+                    highlightedId === site.id ? 'bg-emerald-50/70' : ''
+                  }`}
                 >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
@@ -118,13 +120,6 @@ export function WebsiteTable({
                   </td>
                   <td className="px-5 py-4 text-sm text-gray-700 tabular-nums">
                     {formatResponseTime(site.response_time_ms)}
-                  </td>
-                  <td className="px-5 py-4 text-sm text-gray-500">
-                    {neverChecked ? (
-                      <span className="text-gray-400">Never</span>
-                    ) : (
-                      formatRelativeTime(site.last_checked_at)
-                    )}
                   </td>
                   <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
@@ -167,12 +162,13 @@ export function WebsiteTable({
       <div className="divide-y divide-gray-50 md:hidden">
         {websites.map((site) => {
           const busy = checkingId === site.id || deletingId === site.id;
-          const neverChecked = site.last_checked_at === null;
           return (
             <div
               key={site.id}
               onClick={() => onRowClick(site)}
-              className="cursor-pointer p-4 transition-colors duration-150 active:bg-gray-50"
+              className={`cursor-pointer p-4 transition-colors duration-150 active:bg-gray-50 ${
+                highlightedId === site.id ? 'bg-emerald-50/70' : ''
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex min-w-0 items-center gap-3">
@@ -181,9 +177,7 @@ export function WebsiteTable({
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-gray-900">{getHost(site.url)}</p>
-                    <p className="truncate text-xs text-gray-400">
-                      {neverChecked ? 'Never checked' : formatRelativeTime(site.last_checked_at)}
-                    </p>
+                    <p className="truncate text-xs text-gray-400">{site.url}</p>
                   </div>
                 </div>
                 <StatusBadge status={site.status} />

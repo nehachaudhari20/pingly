@@ -19,6 +19,7 @@ export function Dashboard() {
   const [addOpen, setAddOpen] = useState(false);
   const [checkingId, setCheckingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Website | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -62,7 +63,11 @@ export function Dashboard() {
     const id = toast.loading('Adding website…');
     try {
       const site = await api.addWebsite(url);
-      setWebsites((prev) => [...prev, site]);
+      setWebsites((prev) => [site, ...prev]);
+      setHighlightedId(site.id);
+      window.setTimeout(() => {
+        setHighlightedId((currentId) => (currentId === site.id ? null : currentId));
+      }, 5_000);
       toast.update(id, 'Website added successfully.', 'success');
     } catch (e) {
       toast.update(id, e instanceof Error ? e.message : 'Failed to add website.', 'error');
@@ -95,7 +100,7 @@ export function Dashboard() {
     const site = websites.find((w) => w.id === id);
     const ok = await confirm({
       title: 'Delete website?',
-      description: `This will stop monitoring ${site ? getHost(site.url) : 'this website'} and remove all its history. This action cannot be undone.`,
+      description: `This will stop monitoring ${site ? getHost(site.url) : 'this website'}. Existing health-check history will be retained.`,
       confirmLabel: 'Delete',
       variant: 'danger',
     });
@@ -184,6 +189,7 @@ export function Dashboard() {
           error={error}
           checkingId={checkingId}
           deletingId={deletingId}
+          highlightedId={highlightedId}
           onCheck={handleCheck}
           onDelete={handleDelete}
           onRowClick={handleRowClick}
