@@ -165,7 +165,7 @@ The UI should feel closer to Better Stack and Linear.
 
 ---
 
-## 7. Docker Setup (ChatGPT)
+## 7. Docker Setup (Cursor)
 
 ```text
 Generate Dockerfiles for both backend and frontend and create a docker-compose.yml so the complete application runs using a single docker compose up --build command.
